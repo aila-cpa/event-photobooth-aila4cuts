@@ -5,344 +5,215 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aila4Cuts Photobooth</title>
     <style>
-        :root {
-            --mauve: #C77398;
-            --creme: #FFFBF5;
-            --text-dark: #3A3A3C;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
-            margin: 0;
-            background-color: var(--creme);
-            color: var(--text-dark);
-            text-align: center;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .page {
-            display: none;
-            padding: 40px 20px;
-            animation: fadeIn 0.4s ease-out;
-        }
-
-        .active { display: block; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        h1 {
-            font-size: 42px;
-            font-weight: 700;
-            letter-spacing: -1px;
-            color: var(--mauve);
-            margin-bottom: 10px;
-        }
-
-        button {
-            padding: 14px 28px;
-            margin: 10px;
-            border: none;
-            background: var(--mauve);
-            color: white;
-            cursor: pointer;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-        button:hover { opacity: 0.9; transform: translateY(-1px); }
-
-        input {
-            padding: 12px 18px;
-            width: 280px;
-            margin: 15px;
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            font-size: 16px;
-            outline: none;
-        }
-
-        .booth-container {
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            gap: 30px;
-            flex-wrap: wrap;
-            margin-top: 20px;
-        }
-
-        .video-wrapper {
-            position: relative;
-            width: 480px;
-        }
-
-        video {
-            width: 100%;
-            aspect-ratio: 4/3;
-            background: #000;
-            border-radius: 18px;
-            transform: scaleX(-1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-
-        #countdown {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 100px;
-            font-weight: 800;
-            color: white;
-            text-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            display: none;
-            z-index: 10;
-        }
-
-        /* Standard 600x1800 aspect ratio container */
-        .strip-preview {
-            width: 200px;
-            position: relative;
-            background: white;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-            border-radius: 4px;
-            overflow: hidden;
-            margin: auto;
-        }
-
-        #stripCanvas, #finalCanvas { 
-            width: 100%; 
-            height: auto; 
-            display: block; 
-        }
+        :root { --mauve: #C77398; --creme: #FFFBF5; --text-dark: #3A3A3C; }
+        body { font-family: -apple-system, sans-serif; margin: 0; background-color: var(--creme); color: var(--text-dark); text-align: center; }
         
-        /* Overlay remains perfectly aligned */
-        .border-img {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            pointer-events: none;
-            object-fit: fill;
-        }
+        #fsBtn { position: fixed; top: 15px; left: 15px; z-index: 2000; background: white; border: 1px solid #ddd; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
 
-        .filter-btn {
-            background: #eee;
-            padding: 8px 14px;
-            font-size: 13px;
-            border-radius: 8px;
-            border: none;
-            margin: 4px;
-            cursor: pointer;
-        }
+        .page { display: none; padding: 20px; animation: fadeIn 0.2s ease; }
+        .active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+        h1 { font-size: 42px; color: var(--mauve); margin-bottom: 5px; }
+        button { padding: 12px 24px; margin: 5px; border: none; background: var(--mauve); color: white; cursor: pointer; border-radius: 12px; font-weight: 600; transition: 0.2s; }
+        button:hover { opacity: 0.8; transform: scale(1.02); }
+
+        .booth-container { display: flex; justify-content: center; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
+        .video-wrapper { position: relative; width: 480px; }
+        video { width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 18px; transform: scaleX(-1); border: 6px solid white; box-shadow: 0 10px 30px rgba(0,0,0,0.1); object-fit: cover; }
+        
+        #countdown { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 100px; color: white; text-shadow: 0 0 20px rgba(0,0,0,0.5); z-index: 100; display: none; }
+
+        .strip-preview { width: 220px; position: relative; background: white; border-radius: 4px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); overflow: hidden; line-height: 0; }
+        #stripCanvas, #finalCanvas { width: 100%; height: auto; display: block; cursor: crosshair; }
+        .border-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; object-fit: fill; }
+
+        .tools { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); width: 300px; text-align: left; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px 0; }
+        .color-opt { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 1px solid #eee; }
+        .sticker-opt { font-size: 30px; cursor: pointer; text-align: center; padding: 5px; border-radius: 8px; transition: 0.2s; }
+        .selected-sticker { background: #fce4ec; border: 2px solid var(--mauve); }
+
+        .filter-btn { background: #eee; color: #333; padding: 8px 12px; border-radius: 8px; font-size: 11px; margin: 2px; border: 1px solid transparent; }
         .filter-btn.active { background: var(--text-dark); color: white; }
-
-        footer {
-            margin-top: 60px;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--mauve);
-            letter-spacing: 1px;
-        }
+        footer { margin-top: 40px; color: var(--mauve); font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="page active" id="mainPage">
+    <button id="fsBtn" onclick="toggleFS()">⛶</button>
+
+    <div id="page1" class="page active">
         <h1>aila4cuts</h1>
-        <p>What's the name of the event?</p>
-        <input id="eventName" placeholder="Enter Event Name">
-        <br>
-        <button onclick="goCustomize()">Next</button>
+        <p>What's the name of event?:</p>
+        <input type="text" id="evtName" placeholder="aila's event" style="padding:12px; border-radius:10px; border:1px solid #ddd; width:280px;">
+        <br><br>
+        <button onclick="nav('page2')">Next</button>
     </div>
 
-    <div class="page" id="setupPage">
-        <h2>Customize Event</h2>
-        <p>Upload your 600x1800 border template</p>
-        <input type="file" id="borderUpload" accept="image/*">
-        <br>
-        <button onclick="startEvent()">Start Event</button>
+    <div id="page2" class="page">
+        <h2>Upload Your Layout</h2>
+        <input type="file" id="upBorder" accept="image/*">
+        <br><br>
+        <button onclick="initBooth()">Start Photobooth</button>
     </div>
 
-    <div class="page" id="boothPage">
-        <h2 id="eventTitle"></h2>
+    <div id="page3" class="page">
+        <h2 id="titleDisplay"></h2>
         <div class="booth-container">
             <div class="video-wrapper">
                 <div id="countdown">3</div>
-                <video id="video" autoplay playsinline></video>
-                <div style="margin-top:10px;">
-                    <button class="filter-btn active" onclick="setFilter('none',this)">Normal</button>
-                    <button class="filter-btn" onclick="setFilter('grayscale(1)',this)">B&W</button>
-                    <button class="filter-btn" onclick="setFilter('sepia(0.6) contrast(1.1)',this)">Vintage</button>
-                    <button class="filter-btn" onclick="setFilter('brightness(1.2) contrast(1.1)',this)">Beauty</button>
+                <video id="v" autoplay playsinline></video>
+                <div style="margin-top:15px;">
+                    <button class="filter-btn active" onclick="setF('none', this)">Normal</button>
+                    <button class="filter-btn" onclick="setF('grayscale(100%) contrast(1.2)', this)">B&W</button>
+                    <button class="filter-btn" onclick="setF('sepia(0.4) contrast(1.1)', this)">Vintage</button>
+                    <button class="filter-btn" onclick="setF('brightness(1.2) contrast(1.05) saturate(1.1) blur(0.4px)', this)">Beauty</button>
                 </div>
             </div>
             <div class="strip-preview">
                 <canvas id="stripCanvas" width="600" height="1800"></canvas>
-                <img id="liveBorder" class="border-img">
+                <img id="viewBorder1" class="border-img">
             </div>
         </div>
-        <br>
-        <button id="captureBtn" onclick="startSequence()">Start Capture</button>
-        <button onclick="toggleFull()" style="background:#636366">Full Screen</button>
+        <button id="capBtn" onclick="runSession()">Take 4 Photos</button>
     </div>
 
-    <div class="page" id="customPage">
-        <h2>Your Strip is Ready</h2>
-        <div class="strip-preview" style="width: 280px;">
-            <canvas id="finalCanvas" width="600" height="1800"></canvas>
-            <img id="finalBorder" class="border-img">
+    <div id="page4" class="page">
+        <h2>Personalize & Download</h2>
+        <div class="booth-container">
+            <div class="strip-preview" style="width: 260px;">
+                <canvas id="finalCanvas" width="600" height="1800" onclick="stamp(event)"></canvas>
+                <img id="viewBorder2" class="border-img">
+            </div>
+            
+            <div class="tools">
+                <b>Background Colors</b>
+                <div class="grid">
+                    <div class="color-opt" style="background:#FFFFFF" onclick="setBg('#FFFFFF')"></div>
+                    <div class="color-opt" style="background:#FFB7B2" onclick="setBg('#FFB7B2')"></div>
+                    <div class="color-opt" style="background:#FFDAC1" onclick="setBg('#FFDAC1')"></div>
+                    <div class="color-opt" style="background:#E2F0CB" onclick="setBg('#E2F0CB')"></div>
+                    <div class="color-opt" style="background:#C7CEEA" onclick="setBg('#C7CEEA')"></div>
+                    <div class="color-opt" style="background:#FCE4EC" onclick="setBg('#FCE4EC')"></div>
+                    <div class="color-opt" style="background:#C77398" onclick="setBg('#C77398')"></div>
+                    <div class="color-opt" style="background:#000000" onclick="setBg('#000000')"></div>
+                </div>
+
+                <b>Stickers</b>
+                <div class="grid">
+                    <div class="sticker-opt" onclick="pickS('❤️', this)">❤️</div>
+                    <div class="sticker-opt" onclick="pickS('✨', this)">✨</div>
+                    <div class="sticker-opt" onclick="pickS('🎀', this)">🎀</div>
+                    <div class="sticker-opt" onclick="pickS('🧸', this)">🧸</div>
+                    <div class="sticker-opt" onclick="pickS('⭐', this)">⭐</div>
+                    <div class="sticker-opt" onclick="pickS('🦋', this)">🦋</div>
+                    <div class="sticker-opt" onclick="pickS('☁️', this)">☁️</div>
+                    <div class="sticker-opt" onclick="pickS('🌸', this)">🌸</div>
+                    <div class="sticker-opt" onclick="pickS('🍭', this)">🍭</div>
+                    <div class="sticker-opt" onclick="pickS('🐶', this)">🐶</div>
+                    <div class="sticker-opt" onclick="pickS('🍀', this)">🍀</div>
+                    <div class="sticker-opt" onclick="pickS('🌙', this)">🌙</div>
+                </div>
+                <button onclick="clearS()" style="background:#777; width:100%; margin-top:10px; font-size:12px;">Clear All Stickers</button>
+            </div>
         </div>
-        <br>
-        <button onclick="downloadStrip()">Download Photo</button>
-        <button onclick="retake()">Retake</button>
-        <button onclick="endEvent()" style="background:#cc9999">End Event</button>
+        
+        <div style="margin-top:25px;">
+            <button onclick="downloadStrip()" style="background:#4CAF50; font-size:20px;">Download Photo Strip</button>
+            <br><br>
+            <button onclick="retake()" style="background:#ffcc00; color:#333;">Retake Photos</button>
+            <button onclick="endSession()" style="background:#cc9999">End Session</button>
+        </div>
     </div>
 
     <footer>@AILA4CUTS</footer>
 
     <script>
-        let video = document.getElementById("video");
-        let photos = [];
-        let filter = "none";
-        let borderImageObj = null;
+        const v = document.getElementById('v'), sCanvas = document.getElementById('stripCanvas'), fCanvas = document.getElementById('finalCanvas');
+        let bordObj = null, filter = 'none', bg = 'white', photos = [], stickers = [], activeS = null;
+        const W=600, H=1800, PW=512, PH=384, PX=44, PY=105, GAP=22;
 
-        // Visual constants to match the black frames in your template
-        const PHOTO_Y_START = 105; 
-        const PHOTO_GAP = 22;      
-        const PHOTO_WIDTH = 512;   
-        const PHOTO_HEIGHT = 384;  
-        const PHOTO_X_OFFSET = 44; 
+        function nav(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+        function toggleFS() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+        function setF(f, b) { filter = f; v.style.filter = f; document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active')); b.classList.add('active'); }
 
-        function showPage(id) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-        }
-
-        function goCustomize() { showPage("setupPage"); }
-
-        function startEvent() {
-            let nameInput = document.getElementById("eventName").value;
-            document.getElementById("eventTitle").innerText = nameInput || "Photobooth Event";
-            
-            let file = document.getElementById("borderUpload").files[0];
+        function initBooth() {
+            document.getElementById('titleDisplay').innerText = document.getElementById('evtName').value || "aila4cuts";
+            const file = document.getElementById('upBorder').files[0];
             if (file) {
-                let reader = new FileReader();
-                reader.onload = function(e) {
-                    borderImageObj = new Image();
-                    borderImageObj.src = e.target.result;
-                    borderImageObj.onload = () => {
-                        document.getElementById("liveBorder").src = e.target.result;
-                        document.getElementById("finalBorder").src = e.target.result;
-                        drawLiveStrip();
-                    };
+                const r = new FileReader();
+                r.onload = (e) => {
+                    bordObj = new Image(); bordObj.src = e.target.result;
+                    bordObj.onload = () => { draw(sCanvas); document.getElementById('viewBorder1').src = bordObj.src; document.getElementById('viewBorder2').src = bordObj.src; };
                 };
-                reader.readAsDataURL(file);
+                r.readAsDataURL(file);
             }
-            showPage("boothPage");
-            startCamera();
-            drawLiveStrip();
+            navigator.mediaDevices.getUserMedia({video:{width:1280,height:960}}).then(s => { v.srcObject = s; nav('page3'); draw(sCanvas); });
         }
 
-        async function startCamera() {
-            try {
-                let s = await navigator.mediaDevices.getUserMedia({video:{width:1280,height:960}});
-                video.srcObject = s;
-            } catch(e) { alert("Camera access required."); }
-        }
-
-        function setFilter(f, b) {
-            filter = f; video.style.filter = f;
-            document.querySelectorAll(".filter-btn").forEach(btn => btn.classList.remove("active"));
-            b.classList.add("active");
-        }
-
-        async function startSequence() {
-            photos = [];
-            document.getElementById("captureBtn").disabled = true;
+        async function runSession() {
+            photos = []; stickers = []; document.getElementById('capBtn').disabled = true;
             for(let i=0; i<4; i++) {
-                await runCountdown();
-                capturePhoto();
+                await count();
+                const c = document.createElement('canvas'); c.width = PW; c.height = PH;
+                const ctx = c.getContext('2d'); ctx.filter = filter; ctx.translate(PW, 0); ctx.scale(-1, 1);
+                ctx.drawImage(v, 0, 0, PW, PH);
+                photos.push(c); draw(sCanvas);
             }
-            setTimeout(() => {
-                buildFinalStrip();
-                showPage("customPage");
-                document.getElementById("captureBtn").disabled = false;
-            }, 500);
+            draw(fCanvas); nav('page4'); document.getElementById('capBtn').disabled = false;
         }
 
-        function runCountdown() {
+        function count() {
             return new Promise(res => {
-                let count = 3;
-                let el = document.getElementById("countdown");
-                el.innerText = count; el.style.display = "block";
-                let t = setInterval(() => {
-                    count--;
-                    if(count <= 0) { clearInterval(t); el.style.display="none"; res(); }
-                    else el.innerText = count;
-                }, 1000);
+                let n = 3; const el = document.getElementById('countdown'); el.innerText = n; el.style.display = 'block';
+                const t = setInterval(() => { n--; if(n<=0) { clearInterval(t); el.style.display='none'; res(); } else el.innerText = n; }, 1000);
             });
         }
 
-        function capturePhoto() {
-            let canvas = document.createElement("canvas");
-            canvas.width = PHOTO_WIDTH;
-            canvas.height = PHOTO_HEIGHT;
-            let ctx = canvas.getContext("2d");
-            ctx.translate(PHOTO_WIDTH, 0);
-            ctx.scale(-1, 1);
-            ctx.filter = filter;
-            ctx.drawImage(video, 0, 0, PHOTO_WIDTH, PHOTO_HEIGHT);
-            photos.push(canvas);
-            drawLiveStrip();
+        function draw(can) {
+            const ctx = can.getContext('2d');
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+            photos.forEach((p, i) => ctx.drawImage(p, PX, PY + (i * (PH + GAP)), PW, PH));
+            if(bordObj) ctx.drawImage(bordObj, 0, 0, W, H);
+            
+            if(can.id === 'finalCanvas' || can.dataset.final === 'true') {
+                stickers.forEach(s => { 
+                    ctx.font = "90px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
+                    ctx.fillText(s.emoji, s.x, s.y); 
+                });
+                ctx.font = "bold 24px Arial"; ctx.textAlign = "center";
+                ctx.fillStyle = (bg === '#000000' || bg === 'black') ? "white" : "#999999";
+                ctx.fillText("@aila4cuts", W/2, 1765);
+            }
         }
 
-        function drawLiveStrip() { renderToCanvas("stripCanvas"); }
-        function buildFinalStrip() { renderToCanvas("finalCanvas"); }
+        function setBg(c) { bg = c; draw(fCanvas); }
+        function pickS(emoji, el) { activeS = emoji; document.querySelectorAll('.sticker-opt').forEach(s => s.classList.remove('selected-sticker')); el.classList.add('selected-sticker'); }
+        function stamp(e) { if(!activeS) return; const rect = fCanvas.getBoundingClientRect(); stickers.push({x:(e.clientX-rect.left)*(W/rect.width), y:(e.clientY-rect.top)*(H/rect.height), emoji:activeS}); draw(fCanvas); }
+        function clearS() { stickers = []; draw(fCanvas); }
+        function retake() { photos = []; stickers = []; nav('page3'); draw(sCanvas); }
 
-        function renderToCanvas(canvasId) {
-            let canvas = document.getElementById(canvasId);
-            let ctx = canvas.getContext("2d");
-            ctx.fillStyle = "white";
-            ctx.fillRect(0, 0, 600, 1800);
-            
-            for(let i=0; i<photos.length; i++) {
-                let yPos = PHOTO_Y_START + (i * (PHOTO_HEIGHT + PHOTO_GAP));
-                ctx.drawImage(photos[i], PHOTO_X_OFFSET, yPos, PHOTO_WIDTH, PHOTO_HEIGHT);
-            }
-            
-            // Only draw the border on the actual canvas if we are building the final downloadable image
-            if(borderImageObj && canvasId === "finalCanvas") {
-                ctx.drawImage(borderImageObj, 0, 0, 600, 1800);
-            }
+        // FIXED END SESSION
+        function endSession() {
+            photos = [];
+            stickers = [];
+            bg = 'white';
+            bordObj = null;
+            document.getElementById('upBorder').value = "";
+            document.getElementById('evtName').value = "";
+            document.getElementById('viewBorder1').src = "";
+            document.getElementById('viewBorder2').src = "";
+            nav('page1');
         }
 
         function downloadStrip() {
-            let name = document.getElementById("eventName").value || "aila4cuts";
-            let link = document.createElement("a");
-            link.download = `${name.replace(/\s+/g, '-')}-strip.png`;
-            link.href = document.getElementById("finalCanvas").toDataURL("image/png");
+            const temp = document.createElement('canvas'); temp.width = W; temp.height = H; temp.dataset.final = 'true';
+            draw(temp);
+            const link = document.createElement('a'); 
+            link.download = 'aila4cuts-strip.png'; 
+            link.href = temp.toDataURL("image/png"); 
             link.click();
-        }
-
-        function retake() { photos = []; drawLiveStrip(); showPage("boothPage"); }
-
-        function endEvent() {
-            photos = []; 
-            borderImageObj = null;
-            document.getElementById("eventName").value = "";
-            document.getElementById("borderUpload").value = "";
-            document.getElementById("liveBorder").src = "";
-            document.getElementById("finalBorder").src = "";
-            showPage("mainPage");
-        }
-
-        function toggleFull() {
-            if(!document.fullscreenElement) document.documentElement.requestFullscreen();
-            else document.exitFullscreen();
         }
     </script>
 </body>
