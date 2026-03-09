@@ -2,41 +2,112 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Aila4Cuts Photobooth</title>
     <style>
-        :root { --mauve: #C77398; --creme: #FFFBF5; --text-dark: #3A3A3C; }
-        body { font-family: -apple-system, sans-serif; margin: 0; background-color: var(--creme); color: var(--text-dark); text-align: center; }
+        :root { 
+            --mauve: #C77398; 
+            --creme: #FFFBF5; 
+            --text-dark: #3A3A3C; 
+            --shadow: 0 8px 30px rgba(0,0,0,0.08);
+        }
+
+        body { 
+            font-family: -apple-system, system-ui, sans-serif; 
+            margin: 0; 
+            background-color: var(--creme); 
+            color: var(--text-dark); 
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Fullscreen Toggle */
+        #fsBtn { 
+            position: fixed; top: 15px; left: 15px; z-index: 2000; 
+            background: white; border: 1px solid #ddd; padding: 12px; 
+            border-radius: 12px; cursor: pointer; font-size: 24px; 
+            box-shadow: var(--shadow); 
+        }
+
+        .page { display: none; padding: 15px; animation: fadeIn 0.3s ease; min-height: 100vh; box-sizing: border-box; }
+        .active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
         
-        #fsBtn { position: fixed; top: 15px; left: 15px; z-index: 2000; background: white; border: 1px solid #ddd; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .page { display: none; padding: 20px; animation: fadeIn 0.2s ease; }
-        .active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        h1 { font-size: 50px; color: var(--mauve); margin: 0 0 10px 0; letter-spacing: -1px; }
+        h2 { font-size: 28px; margin-bottom: 20px; color: var(--mauve); }
 
-        h1 { font-size: 42px; color: var(--mauve); margin-bottom: 5px; }
-        button { padding: 12px 24px; margin: 5px; border: none; background: var(--mauve); color: white; cursor: pointer; border-radius: 12px; font-weight: 600; transition: 0.2s; }
-        button:hover { opacity: 0.8; transform: scale(1.02); }
+        button { 
+            padding: 16px 32px; margin: 8px; border: none; 
+            background: var(--mauve); color: white; cursor: pointer; 
+            border-radius: 16px; font-weight: 600; font-size: 18px;
+            box-shadow: 0 4px 10px rgba(199, 115, 152, 0.3);
+            transition: 0.2s; 
+        }
+        button:active { transform: scale(0.95); opacity: 0.9; }
 
-        .booth-container { display: flex; justify-content: center; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
-        .video-wrapper { position: relative; width: 480px; }
-        video { width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 18px; transform: scaleX(-1); border: 6px solid white; box-shadow: 0 10px 30px rgba(0,0,0,0.1); object-fit: cover; }
+        /* Tablet Optimized Layout */
+        .booth-container { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            gap: 30px; 
+            width: 100%;
+            max-width: 1100px;
+            margin: 10px auto;
+        }
+
+        /* Video scaling for 11.5" screen */
+        .video-wrapper { position: relative; width: 600px; max-width: 60vw; }
+        video { 
+            width: 100%; aspect-ratio: 4/3; background: #000; 
+            border-radius: 24px; transform: scaleX(-1); 
+            border: 8px solid white; box-shadow: var(--shadow); 
+            object-fit: cover; 
+        }
         
-        #countdown { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 100px; color: white; text-shadow: 0 0 20px rgba(0,0,0,0.5); z-index: 100; display: none; }
+        #countdown { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            font-size: 150px; color: white; font-weight: 800;
+            text-shadow: 0 0 30px rgba(0,0,0,0.6); z-index: 100; display: none; 
+        }
 
-        .strip-preview { width: 220px; position: relative; background: white; border-radius: 4px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); overflow: hidden; line-height: 0; }
-        #stripCanvas, #finalCanvas { width: 100%; height: auto; display: block; cursor: crosshair; }
+        /* Strip Preview - Scaled for Tablet height */
+        .strip-preview { 
+            width: 180px; /* Slimmer for tablet view */
+            position: relative; background: white; 
+            border-radius: 4px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); 
+            overflow: hidden; line-height: 0;
+        }
+        #stripCanvas, #finalCanvas { width: 100%; height: auto; display: block; }
         .border-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; object-fit: fill; }
 
-        .tools { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); width: 300px; text-align: left; }
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px 0; }
-        .color-opt { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 1px solid #eee; }
-        .sticker-opt { font-size: 30px; cursor: pointer; text-align: center; padding: 5px; border-radius: 8px; transition: 0.2s; }
+        /* Touch-Friendly Tools */
+        .tools { 
+            background: white; padding: 25px; border-radius: 24px; 
+            box-shadow: var(--shadow); width: 340px; text-align: left; 
+        }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 15px 0; }
+        .color-opt { width: 45px; height: 45px; border-radius: 50%; cursor: pointer; border: 2px solid #eee; }
+        .sticker-opt { font-size: 36px; cursor: pointer; text-align: center; padding: 8px; border-radius: 12px; transition: 0.2s; }
         .selected-sticker { background: #fce4ec; border: 2px solid var(--mauve); }
 
-        .filter-btn { background: #eee; color: #333; padding: 8px 12px; border-radius: 8px; font-size: 11px; margin: 2px; border: 1px solid transparent; }
-        .filter-btn.active { background: var(--text-dark); color: white; }
-        footer { margin-top: 40px; color: var(--mauve); font-weight: bold; }
+        .filter-group { margin-top: 20px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+        .filter-btn { 
+            background: #fff; color: #333; padding: 12px 18px; 
+            border-radius: 12px; font-size: 14px; font-weight: 600;
+            border: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .filter-btn.active { background: var(--text-dark); color: white; border-color: var(--text-dark); }
+        
+        footer { margin-top: auto; padding: 20px; color: var(--mauve); font-weight: bold; letter-spacing: 2px; }
+
+        /* Adjustments for Portrait/Landscape Tablet */
+        @media (max-height: 800px) {
+            h1 { font-size: 32px; }
+            .video-wrapper { width: 500px; }
+            .strip-preview { width: 150px; }
+        }
     </style>
 </head>
 <body>
@@ -45,30 +116,33 @@
 
     <div id="page1" class="page active">
         <h1>aila4cuts</h1>
-        <p>What's the name of event?:</p>
-        <input type="text" id="evtName" placeholder="aila's event" style="padding:12px; border-radius:10px; border:1px solid #ddd; width:280px;">
-        <br><br>
-        <button onclick="nav('page2')">Next</button>
+        <p style="font-size: 18px;">Event Name:</p>
+        <input type="text" id="evtName" placeholder="aila's event" 
+               style="padding:18px; border-radius:15px; border:1px solid #ddd; width:320px; font-size: 18px; outline: none; text-align: center;">
+        <br>
+        <button onclick="nav('page2')">Start Setup</button>
     </div>
 
     <div id="page2" class="page">
-        <h2>Upload Your Layout</h2>
-        <input type="file" id="upBorder" accept="image/*">
-        <br><br>
-        <button onclick="initBooth()">Start Photobooth</button>
+        <h2>Upload Layout</h2>
+        <div style="background: white; padding: 30px; border-radius: 20px; box-shadow: var(--shadow);">
+            <input type="file" id="upBorder" accept="image/*" style="font-size: 16px;">
+        </div>
+        <br>
+        <button onclick="initBooth()">Open Camera</button>
     </div>
 
     <div id="page3" class="page">
-        <h2 id="titleDisplay"></h2>
+        <h2 id="titleDisplay" style="margin-top: 0;"></h2>
         <div class="booth-container">
             <div class="video-wrapper">
                 <div id="countdown">3</div>
                 <video id="v" autoplay playsinline></video>
-                <div style="margin-top:15px;">
+                <div class="filter-group">
                     <button class="filter-btn active" onclick="setF('none', this)">Normal</button>
                     <button class="filter-btn" onclick="setF('grayscale(100%) contrast(1.2)', this)">B&W</button>
                     <button class="filter-btn" onclick="setF('sepia(0.4) contrast(1.1)', this)">Vintage</button>
-                    <button class="filter-btn" onclick="setF('brightness(1.2) contrast(1.05) saturate(1.1) blur(0.4px)', this)">Beauty</button>
+                    <button class="filter-btn" onclick="setF('brightness(1.15) contrast(0.92) saturate(1.5) blur(0.4px)', this)">Soft Beauty</button>
                 </div>
             </div>
             <div class="strip-preview">
@@ -76,31 +150,31 @@
                 <img id="viewBorder1" class="border-img">
             </div>
         </div>
-        <button id="capBtn" onclick="runSession()">Take 4 Photos</button>
+        <button id="capBtn" onclick="runSession()" style="padding: 20px 50px; font-size: 22px;">Take 4 Photos</button>
     </div>
 
     <div id="page4" class="page">
-        <h2>Personalize & Download</h2>
-        <div class="booth-container">
-            <div class="strip-preview" style="width: 260px;">
+        <h2>Personalize Your Strip</h2>
+        <div class="booth-container" style="align-items: flex-start;">
+            <div class="strip-preview" style="width: 200px;">
                 <canvas id="finalCanvas" width="600" height="1800" onclick="stamp(event)"></canvas>
                 <img id="viewBorder2" class="border-img">
             </div>
             
             <div class="tools">
-                <b>Background Colors</b>
+                <p><b>1. Background</b></p>
                 <div class="grid">
                     <div class="color-opt" style="background:#FFFFFF" onclick="setBg('#FFFFFF')"></div>
                     <div class="color-opt" style="background:#FFB7B2" onclick="setBg('#FFB7B2')"></div>
-                    <div class="color-opt" style="background:#FFDAC1" onclick="setBg('#FFDAC1')"></div>
                     <div class="color-opt" style="background:#E2F0CB" onclick="setBg('#E2F0CB')"></div>
                     <div class="color-opt" style="background:#C7CEEA" onclick="setBg('#C7CEEA')"></div>
                     <div class="color-opt" style="background:#FCE4EC" onclick="setBg('#FCE4EC')"></div>
                     <div class="color-opt" style="background:#C77398" onclick="setBg('#C77398')"></div>
+                    <div class="color-opt" style="background:#333333" onclick="setBg('#333333')"></div>
                     <div class="color-opt" style="background:#000000" onclick="setBg('#000000')"></div>
                 </div>
 
-                <b>Stickers</b>
+                <p><b>2. Stickers (Tap to select, then tap photo)</b></p>
                 <div class="grid">
                     <div class="sticker-opt" onclick="pickS('❤️', this)">❤️</div>
                     <div class="sticker-opt" onclick="pickS('✨', this)">✨</div>
@@ -110,20 +184,17 @@
                     <div class="sticker-opt" onclick="pickS('🦋', this)">🦋</div>
                     <div class="sticker-opt" onclick="pickS('☁️', this)">☁️</div>
                     <div class="sticker-opt" onclick="pickS('🌸', this)">🌸</div>
-                    <div class="sticker-opt" onclick="pickS('🍭', this)">🍭</div>
-                    <div class="sticker-opt" onclick="pickS('🐶', this)">🐶</div>
-                    <div class="sticker-opt" onclick="pickS('🍀', this)">🍀</div>
-                    <div class="sticker-opt" onclick="pickS('🌙', this)">🌙</div>
                 </div>
-                <button onclick="clearS()" style="background:#777; width:100%; margin-top:10px; font-size:12px;">Clear All Stickers</button>
+                <button onclick="clearS()" style="background:#777; width:100%; margin-top:10px; font-size:14px; border-radius: 12px;">Clear Stickers</button>
             </div>
         </div>
         
-        <div style="margin-top:25px;">
-            <button onclick="downloadStrip()" style="background:#4CAF50; font-size:20px;">Download Photo Strip</button>
-            <br><br>
-            <button onclick="retake()" style="background:#ffcc00; color:#333;">Retake Photos</button>
-            <button onclick="endSession()" style="background:#cc9999">End Session</button>
+        <div style="margin-top:20px;">
+            <button onclick="downloadStrip()" style="background:#4CAF50; font-size:22px; padding: 20px 60px;">Download Photo Strip</button>
+            <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
+                <button onclick="retake()" style="background:#ffcc00; color:#333; font-size: 16px;">Retake</button>
+                <button onclick="endSession()" style="background:#cc9999; font-size: 16px;">End Session</button>
+            </div>
         </div>
     </div>
 
@@ -134,9 +205,22 @@
         let bordObj = null, filter = 'none', bg = 'white', photos = [], stickers = [], activeS = null;
         const W=600, H=1800, PW=512, PH=384, PX=44, PY=105, GAP=22;
 
-        function nav(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-        function toggleFS() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
-        function setF(f, b) { filter = f; v.style.filter = f; document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active')); b.classList.add('active'); }
+        function nav(id) { 
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
+            document.getElementById(id).classList.add('active'); 
+            window.scrollTo(0,0);
+        }
+        
+        function toggleFS() { 
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(e => {}); 
+            else document.exitFullscreen(); 
+        }
+
+        function setF(f, b) { 
+            filter = f; v.style.filter = f; 
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active')); 
+            b.classList.add('active'); 
+        }
 
         function initBooth() {
             document.getElementById('titleDisplay').innerText = document.getElementById('evtName').value || "aila4cuts";
@@ -144,12 +228,21 @@
             if (file) {
                 const r = new FileReader();
                 r.onload = (e) => {
-                    bordObj = new Image(); bordObj.src = e.target.result;
-                    bordObj.onload = () => { draw(sCanvas); document.getElementById('viewBorder1').src = bordObj.src; document.getElementById('viewBorder2').src = bordObj.src; };
+                    bordObj = new Image(); 
+                    bordObj.src = e.target.result;
+                    bordObj.onload = () => { 
+                        draw(sCanvas); 
+                        document.getElementById('viewBorder1').src = bordObj.src; 
+                        document.getElementById('viewBorder2').src = bordObj.src; 
+                    };
                 };
                 r.readAsDataURL(file);
             }
-            navigator.mediaDevices.getUserMedia({video:{width:1280,height:960}}).then(s => { v.srcObject = s; nav('page3'); draw(sCanvas); });
+            navigator.mediaDevices.getUserMedia({video:{width:1280,height:960}}).then(s => { 
+                v.srcObject = s; 
+                nav('page3'); 
+                draw(sCanvas); 
+            }).catch(err => alert("Camera error: " + err));
         }
 
         async function runSession() {
@@ -183,23 +276,28 @@
                     ctx.fillText(s.emoji, s.x, s.y); 
                 });
                 ctx.font = "bold 24px Arial"; ctx.textAlign = "center";
-                ctx.fillStyle = (bg === '#000000' || bg === 'black') ? "white" : "#999999";
+                ctx.fillStyle = (bg === '#000000' || bg === 'black' || bg === '#333333') ? "white" : "#999999";
                 ctx.fillText("@aila4cuts", W/2, 1765);
             }
         }
 
         function setBg(c) { bg = c; draw(fCanvas); }
         function pickS(emoji, el) { activeS = emoji; document.querySelectorAll('.sticker-opt').forEach(s => s.classList.remove('selected-sticker')); el.classList.add('selected-sticker'); }
-        function stamp(e) { if(!activeS) return; const rect = fCanvas.getBoundingClientRect(); stickers.push({x:(e.clientX-rect.left)*(W/rect.width), y:(e.clientY-rect.top)*(H/rect.height), emoji:activeS}); draw(fCanvas); }
+        function stamp(e) { 
+            if(!activeS) return; 
+            const rect = fCanvas.getBoundingClientRect(); 
+            stickers.push({
+                x:(e.clientX-rect.left)*(W/rect.width), 
+                y:(e.clientY-rect.top)*(H/rect.height), 
+                emoji:activeS
+            }); 
+            draw(fCanvas); 
+        }
         function clearS() { stickers = []; draw(fCanvas); }
         function retake() { photos = []; stickers = []; nav('page3'); draw(sCanvas); }
 
-        // FIXED END SESSION
         function endSession() {
-            photos = [];
-            stickers = [];
-            bg = 'white';
-            bordObj = null;
+            photos = []; stickers = []; bg = 'white'; bordObj = null;
             document.getElementById('upBorder').value = "";
             document.getElementById('evtName').value = "";
             document.getElementById('viewBorder1').src = "";
