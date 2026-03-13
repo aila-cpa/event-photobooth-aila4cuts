@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Aila4Cuts Photobooth</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.4.5/gifshot.min.js"></script>
     <style>
         :root { 
             --mauve: #C77398; 
@@ -102,6 +105,22 @@
         
         footer { margin-top: auto; padding: 20px; color: var(--mauve); font-weight: bold; letter-spacing: 2px; }
 
+        /* QR and P2P UI */
+        .qr-container {
+            margin-top: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            width: 340px;
+        }
+        #qr-canvas { margin: 10px 0; }
+        .p2p-status { font-size: 14px; color: #666; margin-top: 5px; }
+
+        #page5 img { max-width: 100%; border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 20px; }
+        .download-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
         /* Adjustments for Portrait/Landscape Tablet */
         @media (max-height: 800px) {
             h1 { font-size: 32px; }
@@ -153,6 +172,22 @@
         <button id="capBtn" onclick="runSession()" style="padding: 20px 50px; font-size: 22px;">Take 4 Photos</button>
     </div>
 
+    <div id="page5" class="page">
+        <h2>Your Photobooth Photos</h2>
+        <div id="receiver-content" style="text-align: center; max-width: 600px;">
+            <p id="receiver-status">Connecting to photobooth...</p>
+            <div id="media-display" style="display:none;">
+                <img id="received-gif" alt="Your GIF">
+                <img id="received-strip" alt="Your Photo Strip">
+                <div class="download-group">
+                    <button id="dl-gif-btn" style="background:#4CAF50;">Download GIF</button>
+                    <button id="dl-strip-btn" style="background:#4CAF50;">Download Strip</button>
+                </div>
+            </div>
+        </div>
+        <button onclick="location.reload()" style="margin-top: 40px; background: #777;">Back to Start</button>
+    </div>
+
     <div id="page4" class="page">
         <h2>Personalize Your Strip</h2>
         <div class="booth-container" style="align-items: flex-start;">
@@ -187,6 +222,12 @@
                 </div>
                 <button onclick="clearS()" style="background:#777; width:100%; margin-top:10px; font-size:14px; border-radius: 12px;">Clear Stickers</button>
             </div>
+
+            <div class="qr-container">
+                <p><b>3. Scan to Download</b></p>
+                <canvas id="qr-canvas"></canvas>
+                <p id="qr-status" class="p2p-status">Generating QR Code...</p>
+            </div>
         </div>
         
         <div style="margin-top:20px;">
@@ -205,10 +246,89 @@
         let bordObj = null, filter = 'none', bg = 'white', photos = [], stickers = [], activeS = null;
         const W=600, H=1800, PW=512, PH=384, PX=44, PY=105, GAP=22;
 
+        let peer = null, conn = null, myId = null, boothPeerId = null;
+        let shareData = { gif: null, strip: null };
+
         function nav(id) { 
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
             document.getElementById(id).classList.add('active'); 
             window.scrollTo(0,0);
+        }
+
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            boothPeerId = params.get('peer');
+            initP2P();
+        };
+
+        function initP2P() {
+            peer = new Peer();
+            peer.on('open', id => {
+                myId = id;
+                if (boothPeerId) {
+                    nav('page5');
+                    connectToBooth(boothPeerId);
+                } else {
+                    updateQR();
+                }
+            });
+
+            peer.on('connection', c => {
+                c.on('open', () => {
+                    if (shareData.gif || shareData.strip) {
+                        c.send(shareData);
+                    }
+                });
+            });
+        }
+
+        function connectToBooth(id) {
+            const c = peer.connect(id);
+            c.on('open', () => {
+                document.getElementById('receiver-status').innerText = "Connected! Waiting for photos...";
+            });
+            c.on('data', data => {
+                if (data.gif || data.strip) {
+                    displayReceived(data);
+                }
+            });
+            c.on('error', () => {
+                document.getElementById('receiver-status').innerText = "Connection error. Please try scanning again.";
+            });
+        }
+
+        function displayReceived(data) {
+            document.getElementById('receiver-status').style.display = 'none';
+            document.getElementById('media-display').style.display = 'block';
+            if (data.gif) {
+                document.getElementById('received-gif').src = data.gif;
+                setupDownload('dl-gif-btn', data.gif, 'aila4cuts.gif');
+            }
+            if (data.strip) {
+                document.getElementById('received-strip').src = data.strip;
+                setupDownload('dl-strip-btn', data.strip, 'aila4cuts-strip.png');
+            }
+        }
+
+        function setupDownload(btnId, dataUrl, filename) {
+            const btn = document.getElementById(btnId);
+            btn.onclick = () => {
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = filename;
+                a.click();
+            };
+        }
+
+        function updateQR() {
+            if (!myId || !document.getElementById('qr-canvas')) return;
+            const url = window.location.origin + window.location.pathname + "?peer=" + myId;
+            new QRious({
+                element: document.getElementById('qr-canvas'),
+                value: url,
+                size: 250
+            });
+            document.getElementById('qr-status').innerText = "Ready! Scan to download.";
         }
         
         function toggleFS() { 
@@ -255,6 +375,7 @@
                 photos.push(c); draw(sCanvas);
             }
             draw(fCanvas); nav('page4'); document.getElementById('capBtn').disabled = false;
+            generateShares();
         }
 
         function count() {
@@ -281,7 +402,7 @@
             }
         }
 
-        function setBg(c) { bg = c; draw(fCanvas); }
+        function setBg(c) { bg = c; draw(fCanvas); updateShareStrip(); }
         function pickS(emoji, el) { activeS = emoji; document.querySelectorAll('.sticker-opt').forEach(s => s.classList.remove('selected-sticker')); el.classList.add('selected-sticker'); }
         function stamp(e) { 
             if(!activeS) return; 
@@ -292,8 +413,33 @@
                 emoji:activeS
             }); 
             draw(fCanvas); 
+            updateShareStrip();
         }
-        function clearS() { stickers = []; draw(fCanvas); }
+        function clearS() { stickers = []; draw(fCanvas); updateShareStrip(); }
+
+        function generateShares() {
+            // Update Strip
+            updateShareStrip();
+
+            // Generate GIF
+            const frames = photos.map(p => p.toDataURL("image/jpeg"));
+            gifshot.createGIF({
+                images: frames,
+                interval: 0.5,
+                gifWidth: PW,
+                gifHeight: PH
+            }, (obj) => {
+                if(!obj.error) {
+                    shareData.gif = obj.image;
+                }
+            });
+        }
+
+        function updateShareStrip() {
+            const temp = document.createElement('canvas'); temp.width = W; temp.height = H; temp.dataset.final = 'true';
+            draw(temp);
+            shareData.strip = temp.toDataURL("image/png");
+        }
         function retake() { photos = []; stickers = []; nav('page3'); draw(sCanvas); }
 
         function endSession() {
