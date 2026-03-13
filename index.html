@@ -119,6 +119,8 @@
         .p2p-status { font-size: 14px; color: #666; margin-top: 5px; }
 
         #page5 img { max-width: 100%; border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 20px; }
+        .gif-preview-container { margin-bottom: 20px; text-align: center; }
+        .gif-preview-container img { width: 200px; border-radius: 12px; border: 4px solid white; box-shadow: var(--shadow); }
         .download-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 
         /* Adjustments for Portrait/Landscape Tablet */
@@ -224,7 +226,11 @@
             </div>
 
             <div class="qr-container">
-                <p><b>3. Scan to Download</b></p>
+                <p><b>3. GIF Preview</b></p>
+                <div id="gif-preview-area" class="gif-preview-container">
+                    <p class="p2p-status">Generating GIF...</p>
+                </div>
+                <p><b>4. Scan to Download</b></p>
                 <canvas id="qr-canvas"></canvas>
                 <p id="qr-status" class="p2p-status">Generating QR Code...</p>
             </div>
@@ -431,6 +437,11 @@
             }, (obj) => {
                 if(!obj.error) {
                     shareData.gif = obj.image;
+                    const img = document.createElement('img');
+                    img.src = obj.image;
+                    const previewArea = document.getElementById('gif-preview-area');
+                    previewArea.innerHTML = '';
+                    previewArea.appendChild(img);
                 }
             });
         }
