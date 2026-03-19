@@ -145,6 +145,17 @@
     </div>
 
     <div id="page2" class="page">
+        <h2>Setup Cloud Storage</h2>
+        <div style="background: white; padding: 30px; border-radius: 20px; box-shadow: var(--shadow); width: 400px; text-align: center;">
+            <p><b>ImgBB API Key (Optional)</b></p>
+            <input type="text" id="imgbbKey" placeholder="Enter ImgBB API Key"
+                   style="padding:15px; border-radius:12px; border:1px solid #ddd; width:90%; font-size: 16px; outline: none;">
+            <p style="font-size: 12px; color: #777; margin-top: 10px;">
+                Get one for free at <a href="https://api.imgbb.com/" target="_blank">api.imgbb.com</a>.
+                If provided, photos will be saved to the cloud so they don't expire.
+            </p>
+        </div>
+        <br>
         <h2>Upload Layout</h2>
         <div style="background: white; padding: 30px; border-radius: 20px; box-shadow: var(--shadow);">
             <input type="file" id="upBorder" accept="image/*" style="font-size: 16px;">
@@ -187,7 +198,7 @@
                 </div>
             </div>
         </div>
-        <button onclick="location.reload()" style="margin-top: 40px; background: #777;">Back to Start</button>
+        <button onclick="location.href = window.location.pathname" style="margin-top: 40px; background: #777;">Back to Start</button>
     </div>
 
     <div id="page4" class="page">
@@ -252,7 +263,7 @@
         let bordObj = null, filter = 'none', bg = 'white', photos = [], stickers = [], activeS = null;
         const W=600, H=1800, PW=512, PH=384, PX=44, PY=105, GAP=22;
 
-        let peer = null, conn = null, myId = null, boothPeerId = null;
+        let peer = null, conn = null, myId = null, boothPeerId = null, cloudKey = null;
         let shareData = { gif: null, strip: null };
 
         function nav(id) { 
@@ -280,6 +291,7 @@
             });
 
             peer.on('connection', c => {
+                conn = c;
                 c.on('open', () => {
                     if (shareData.gif || shareData.strip) {
                         c.send(shareData);
@@ -306,13 +318,15 @@
         function displayReceived(data) {
             document.getElementById('receiver-status').style.display = 'none';
             document.getElementById('media-display').style.display = 'block';
-            if (data.gif) {
-                document.getElementById('received-gif').src = data.gif;
-                setupDownload('dl-gif-btn', data.gif, 'aila4cuts.gif');
+            if (data.gif || data.gifCloud) {
+                const src = data.gifCloud || data.gif;
+                document.getElementById('received-gif').src = src;
+                setupDownload('dl-gif-btn', src, 'aila4cuts.gif');
             }
-            if (data.strip) {
-                document.getElementById('received-strip').src = data.strip;
-                setupDownload('dl-strip-btn', data.strip, 'aila4cuts-strip.png');
+            if (data.strip || data.stripCloud) {
+                const src = data.stripCloud || data.strip;
+                document.getElementById('received-strip').src = src;
+                setupDownload('dl-strip-btn', src, 'aila4cuts-strip.png');
             }
         }
 
@@ -350,6 +364,7 @@
 
         function initBooth() {
             document.getElementById('titleDisplay').innerText = document.getElementById('evtName').value || "aila4cuts";
+            cloudKey = document.getElementById('imgbbKey').value.trim();
             const file = document.getElementById('upBorder').files[0];
             if (file) {
                 const r = new FileReader();
@@ -434,9 +449,18 @@
                 interval: 0.5,
                 gifWidth: PW,
                 gifHeight: PH
-            }, (obj) => {
+            }, async (obj) => {
                 if(!obj.error) {
                     shareData.gif = obj.image;
+
+                    if (cloudKey) {
+                        const url = await uploadToCloud(obj.image);
+                        if (url) {
+                            shareData.gifCloud = url;
+                            if (conn) conn.send({ gifCloud: url });
+                        }
+                    }
+
                     const img = document.createElement('img');
                     img.src = obj.image;
                     const previewArea = document.getElementById('gif-preview-area');
@@ -446,10 +470,30 @@
             });
         }
 
-        function updateShareStrip() {
+        async function uploadToCloud(dataUrl) {
+            if (!cloudKey) return null;
+            const body = new FormData();
+            body.append('image', dataUrl.split(',')[1]);
+            try {
+                const res = await fetch(`https://api.imgbb.com/1/upload?key=${cloudKey}`, { method: 'POST', body });
+                const json = await res.json();
+                return json.success ? json.data.url : null;
+            } catch (e) { return null; }
+        }
+
+        async function updateShareStrip() {
             const temp = document.createElement('canvas'); temp.width = W; temp.height = H; temp.dataset.final = 'true';
             draw(temp);
-            shareData.strip = temp.toDataURL("image/png");
+            const dataUrl = temp.toDataURL("image/png");
+            shareData.strip = dataUrl;
+
+            if (cloudKey) {
+                const url = await uploadToCloud(dataUrl);
+                if (url) {
+                    shareData.stripCloud = url;
+                    if (conn) conn.send({ stripCloud: url });
+                }
+            }
         }
         function retake() { photos = []; stickers = []; nav('page3'); draw(sCanvas); }
 
